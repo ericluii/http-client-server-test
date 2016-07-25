@@ -12,6 +12,33 @@ use \Psr\Http\Message\StreamInterface as StreamInterface;
  */
 class Stream implements StreamInterface
 {
+    private $file_handler;
+    private $is_readable;
+    private $is_writable;
+    private $is_seekable;
+
+    /**
+     * Creates a new instance of a Stream
+     *
+     * @param string $default Specifies data to open the stream with
+     * @param bool $is_readable Read permission for stream
+     * @param bool $is_writable Write permission for stream
+     */
+    function __construct(
+      $default = '',
+      $is_readable = TRUE,
+      $is_writable = TRUE,
+      $is_seekable = TRUE
+    ) {
+      $this->file_handler = fopen("php://temp", "r+");
+      fwrite($this->file_handler, $default);
+      $this->rewind();
+
+      $this->is_readable = $is_readable;
+      $this->is_writable = $is_writable;
+      $this->is_seekable = $is_seekable;
+    }
+
     /**
      * Reads all data from the stream into a string, from the beginning to end.
      *
@@ -28,7 +55,11 @@ class Stream implements StreamInterface
      */
     public function __toString()
     {
-
+      if (!$is_readable || $this->file_handler == null) {
+        return '';
+      else {
+        return stream_get_contents($this->file_handler, -1, 0);
+      }
     }
 
     /**
@@ -38,7 +69,8 @@ class Stream implements StreamInterface
      */
     public function close()
     {
-
+      $this->checkDetached();
+      fclose($this->detach());
     }
 
     /**
@@ -50,7 +82,20 @@ class Stream implements StreamInterface
      */
     public function detach()
     {
+      var $temp = $this->file_handler;
+      $this->file_handler = null;
+      return $temp;
+    }
 
+    /**
+     * Helper function to check if file handler has been detached already
+     *
+     * @return void
+     */
+    private function checkDetached() {
+      if (!isset($this->file_handler)) {
+        throw new RuntimeException("Detach was called, stream is unusable.");
+      }
     }
 
     /**
@@ -60,7 +105,8 @@ class Stream implements StreamInterface
      */
     public function getSize()
     {
-
+      $this->checkDetached();
+      return fstat($this->file_handler)['size'];
     }
 
     /**
@@ -71,17 +117,19 @@ class Stream implements StreamInterface
      */
     public function tell()
     {
-
+      $this->checkDetached();
+      return ftell($this->file_handler);
     }
 
     /**
-     * Returns true if the stream is at the end of the stream.
+     * Returns TRUE if the stream is at the end of the stream.
      *
      * @return bool
      */
     public function eof()
     {
-
+      $this->checkDetached();
+      return feof($this->file_handler);
     }
 
     /**
@@ -91,7 +139,7 @@ class Stream implements StreamInterface
      */
     public function isSeekable()
     {
-
+      return $this->is_seekable;
     }
 
     /**
@@ -108,7 +156,15 @@ class Stream implements StreamInterface
      */
     public function seek($offset, $whence = SEEK_SET)
     {
+      $this->checkDetached();
 
+      if (!$this->is_seekable) {
+        throw new RuntimeException("Stream is not seekable.");
+      }
+
+      if ($fseek($this->file_handler, $offset, $whence) == -1) {
+        throw new RuntimeException("Stream seek failed.");
+      }
     }
 
     /**
@@ -123,7 +179,7 @@ class Stream implements StreamInterface
      */
     public function rewind()
     {
-
+      $this->seek(0);
     }
 
     /**
@@ -133,7 +189,7 @@ class Stream implements StreamInterface
      */
     public function isWritable()
     {
-
+      return $this->is_writable;
     }
 
     /**
@@ -145,7 +201,13 @@ class Stream implements StreamInterface
      */
     public function write($string)
     {
+      $this->checkDetached();
 
+      if (!$this->is_writable ||
+          !($result = fwrite($this->file_handler, $string))) {
+        throw new RuntimeException("Stream cannot be written to.");
+      }
+      return $result;
     }
 
     /**
@@ -155,7 +217,7 @@ class Stream implements StreamInterface
      */
     public function isReadable()
     {
-
+      return $this->is_readable;
     }
 
     /**
@@ -170,7 +232,13 @@ class Stream implements StreamInterface
      */
     public function read($length)
     {
+      $this->checkDetached();
 
+      if (!$this->is_readable ||
+          !($result = fread($this->file_handler, $length))) {
+        throw new RuntimeException("Unable to read from stream.");
+      }
+      return $result;
     }
 
     /**
@@ -182,7 +250,7 @@ class Stream implements StreamInterface
      */
     public function getContents()
     {
-
+      return $this->read($this->size() - $this->tell());
     }
 
     /**
@@ -199,6 +267,17 @@ class Stream implements StreamInterface
      */
     public function getMetadata($key = null)
     {
-        
+      $this->checkDetached();
+
+      $metadata stream_get_meta_data($this->file_handler);
+      if ($key == null) {
+        return $metadata;
+      } else {
+        if (array_key_exists($key, $metadata)) {
+          return $metadata[$key];
+        } else {
+          return null;
+        }
+      }
     }
 }
