@@ -18,62 +18,68 @@ use Psr\Http\Message\StreamInterface as StreamInterface;
  */
 class Message implements MessageInterface
 {
-    const KNOWN_VERSIONS = ["1.0", "1.1"];
+    const KNOWN_VERSIONS = ['1.0', '1.1'];
 
     private $protocol_version;
     private $headers;
     private $body;
 
     function __construct(
-      $version,
       $headers,
-      $body
+      $body,
+      $version
     ) {
       $body = $body ? $body : new Stream();
 
       if (!in_array($version, Message::KNOWN_VERSIONS)) {
-        throw new RuntimeException($version . " is not a known http version.");
+        throw new \InvalidArgumentException($version . ' is not a known http version.');
       } else if (!is_object($body) || get_class($body) != Stream::class) {
-        throw new \InvalidArgumentException("Body provided is not a stream.");
-      } else {
-        if (!is_array($headers)) {
-          throw new \InvalidArgumentException(
-            "The headers provided were not arrays."
-          );
-        }
-
-        foreach ($headers as $key => $value) {
-          if (!is_string($key)) {
-            throw new \InvalidArgumentException("Header keys must be strings.");
-          }
-
-          if (!is_string($value) && !is_array($value)) {
-            throw new \InvalidArgumentException(
-              "Header values must be string or string arrays."
-            );
-          }
-
-          if (is_array($value)) {
-            foreach($value as $val) {
-              if (!is_string($val)) {
-                throw new \InvalidArgumentException(
-                  "Header values must be string or string arrays."
-                );
-              }
-            }
-          }
-        }
+        throw new \InvalidArgumentException('Body provided is not a stream.');
       }
 
       $this->protocol_version = $version;
-      $this->headers = $headers;
       $this->body = $body;
+
+      // Validate headers and case insensitive the keys
+      $this->headers = array();
+
+      if (!is_array($headers)) {
+        throw new \InvalidArgumentException(
+          'The headers provided were not arrays.'
+        );
+      }
+
+      foreach ($headers as $key => $value) {
+        if (!is_string($key)) {
+          throw new \InvalidArgumentException('Header keys must be strings.');
+        }
+
+        if (!is_string($value) && !is_array($value)) {
+          throw new \InvalidArgumentException(
+            'Header values must be string or string arrays.'
+          );
+        }
+
+        if (is_string($value)) {
+          $value = [$value];
+        } else {
+          foreach($value as $val) {
+            if (!is_string($val)) {
+              throw new \InvalidArgumentException(
+                'Header values must be string or string arrays.'
+              );
+            }
+          }
+        }
+
+        $this->headers[strtolower($key)] = $value;
+      }
     }
 
     /**
      * Retrieves the HTTP protocol version as a string.
      *
-     * The string MUST contain only the HTTP version number (e.g., "1.1", "1.0").
+     * The string MUST contain only the HTTP version number (e.g., '1.1', '1.0').
      *
      * @return string HTTP protocol version.
      */
@@ -86,7 +92,7 @@ class Message implements MessageInterface
      * Return an instance with the specified HTTP protocol version.
      *
      * The version string MUST contain only the HTTP version number (e.g.,
-     * "1.1", "1.0").
+     * '1.1', '1.0').
      *
      * This method MUST be implemented in such a way as to retain the
      * immutability of the message, and MUST return an instance that has the
@@ -98,9 +104,9 @@ class Message implements MessageInterface
     public function withProtocolVersion($version)
     {
       return self::__construct(
-        $version,
         $this->getHeaders(),
-        $this->getBody()
+        $this->getBody(),
+        $version
       );
     }
 
@@ -112,7 +118,7 @@ class Message implements MessageInterface
      *
      *     // Represent the headers as a string
      *     foreach ($message->getHeaders() as $name => $values) {
-     *         echo $name . ": " . implode(", ", $values){}
+     *         echo $name . ': ' . implode(', ', $values){}
      *     }
      *
      *     // Emit headers iteratively:
@@ -131,7 +137,6 @@ class Message implements MessageInterface
      */
     public function getHeaders()
     {
-      // TODO: find out if need to make a copy of this
       return $this->headers;
     }
 
@@ -192,7 +197,7 @@ class Message implements MessageInterface
      */
     public function getHeaderLine($name)
     {
-      return implode(",", $this->getHeader($name));
+      return implode(',', $this->getHeader($name));
     }
 
     /**
@@ -213,9 +218,9 @@ class Message implements MessageInterface
     public function withHeader($name, $value)
     {
       return self::__construct(
-        $this->getProtocolVersion(),
-        [ strtolower($name) => $value ],
-        $this->getBody()
+        [ $name => $value ],
+        $this->getBody(),
+        $this->getProtocolVersion()
       );
     }
 
@@ -239,12 +244,12 @@ class Message implements MessageInterface
     public function withAddedHeader($name, $value)
     {
       $temp = $this->getHeaders();
-      $temp[strtolower($name)] = $value;
+      $temp[$name] = $value;
 
       return self::__construct(
-        $this->getProtocolVersion(),
         $temp,
-        $this->getBody()
+        $this->getBody(),
+        $this->getProtocolVersion()
       );
     }
 
@@ -263,13 +268,13 @@ class Message implements MessageInterface
     public function withoutHeader($name)
     {
       if ($this->hasHeader($name)) {
-        $temp = $this->getHeader($name);
+        $temp = $this->getHeaders();
         unset($temp[strtolower($name)]);
 
         return self::__construct(
-          $this->getProtocolVersion(),
           $temp,
-          $this->getBody()
+          $this->getBody(),
+          $this->getProtocolVersion()
         );
       } else {
         return $this;
@@ -283,8 +288,8 @@ class Message implements MessageInterface
      */
     public function getBody()
     {
-      // TODO: find out if I need to make a copy of this
-      return $this->body;
+      // Create a new stream object to prevent mutation
+      return new Stream((string)$this->body);
     }
 
     /**
@@ -303,9 +308,9 @@ class Message implements MessageInterface
     public function withBody(StreamInterface $body)
     {
       return self::__construct(
-        $this->getProtocolVersion(),
         $this->getHeaders(),
-        $body
+        $body,
+        $this->getProtocolVersion()
       );
     }
 }

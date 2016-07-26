@@ -27,21 +27,21 @@ class Response extends Message implements ResponseInterface
     private $reason_phrase;
 
     function __construct(
-      $protocol_version = "1.1",
-      $status_code = "200",
-      $reason_phrase = "",
+      $protocol_version = '1.1',
+      $status_code = '200',
+      $reason_phrase = '',
       $headers = [],
       $body = ''
     ) {
       if (!is_string($body)) {
-        throw new \InvalidArgumentException("Body must be a string.");
+        throw new \InvalidArgumentException('Body must be a string.');
       } else if (!is_string($status_code)) {
-        throw new \InvalidArgumentException("Status code must be a string.");
+        throw new \InvalidArgumentException('Status code must be a string.');
       } else if (!is_string($reason_phrase)) {
-        throw new \InvalidArgumentException("Reason phrase must be a string.");
+        throw new \InvalidArgumentException('Reason phrase must be a string.');
       }
 
-      parent::__construct($protocol_version, $headers, new Stream($body));
+      parent::__construct($headers, new Stream($body), $protocol_version);
       $this->status_code = $status_code;
       $this->reason_phrase = $reason_phrase;
     }

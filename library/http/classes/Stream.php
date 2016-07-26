@@ -34,7 +34,7 @@ class Stream implements StreamInterface
       $this->is_writable = $is_writable;
       $this->is_seekable = $is_seekable;
 
-      $this->file_handler = fopen("php://temp", "r+");
+      $this->file_handler = fopen('php://temp', 'r+');
       fwrite($this->file_handler, $default);
       $this->rewind();
     }
@@ -55,7 +55,7 @@ class Stream implements StreamInterface
      */
     public function __toString()
     {
-      if (!$is_readable || $this->file_handler == null) {
+      if (!$this->is_readable || $this->file_handler == null) {
         return '';
       } else {
         return stream_get_contents($this->file_handler, -1, 0);
@@ -94,7 +94,7 @@ class Stream implements StreamInterface
      */
     private function checkDetached() {
       if (!isset($this->file_handler)) {
-        throw new \RuntimeException("Detach was called, stream is unusable.");
+        throw new \RuntimeException('Detach was called, stream is unusable.');
       }
     }
 
@@ -159,11 +159,11 @@ class Stream implements StreamInterface
       $this->checkDetached();
 
       if (!$this->is_seekable) {
-        throw new \RuntimeException("Stream is not seekable.");
+        throw new \RuntimeException('Stream is not seekable.');
       }
 
       if (fseek($this->file_handler, $offset, $whence) == -1) {
-        throw new \RuntimeException("Stream seek failed.");
+        throw new \RuntimeException('Stream seek failed.');
       }
     }
 
@@ -205,7 +205,7 @@ class Stream implements StreamInterface
 
       if (!$this->is_writable ||
           !($result = fwrite($this->file_handler, $string))) {
-        throw new \RuntimeException("Stream cannot be written to.");
+        throw new \RuntimeException('Stream cannot be written to.');
       }
       return $result;
     }
@@ -236,7 +236,7 @@ class Stream implements StreamInterface
 
       if (!$this->is_readable ||
           !($result = fread($this->file_handler, $length))) {
-        throw new \RuntimeException("Unable to read from stream.");
+        throw new \RuntimeException('Unable to read from stream.');
       }
       return $result;
     }

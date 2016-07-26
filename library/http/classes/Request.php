@@ -44,8 +44,8 @@ class Request extends Message implements RequestInterface
     private $uri;
 
     function __construct(
-      $protocol_version = "1.1",
-      $http_method = "GET",
+      $protocol_version = '1.1',
+      $http_method = 'GET',
       $uri = null,
       $headers = [],
       $body = ''
@@ -54,13 +54,13 @@ class Request extends Message implements RequestInterface
 
       if (!in_array($http_method, Request::KNOWN_METHODS)) {
         throw new \InvalidArgumentException(
-          $http_method . " is not a valid http method."
+          $http_method . ' is not a valid http method.'
         );
       } else if (!is_string($body)) {
-        throw new \InvalidArgumentException("Body must be a string.");
+        throw new \InvalidArgumentException('Body must be a string.');
       }
 
-      parent::__construct($protocol_version, $headers, new Stream($body));
+      parent::__construct($headers, new Stream($body), $protocol_version);
       $this->http_method = $http_method;
       $this->$uri = $uri;
     }
@@ -77,7 +77,7 @@ class Request extends Message implements RequestInterface
      * withRequestTarget() below).
      *
      * If no URI is available, and no request-target has been specifically
-     * provided, this method MUST return the string "/".
+     * provided, this method MUST return the string '/'.
      *
      * @return string
      */
