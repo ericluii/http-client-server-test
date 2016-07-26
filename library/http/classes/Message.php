@@ -132,7 +132,7 @@ class Message implements MessageInterface
     public function getHeaders()
     {
       // TODO: find out if need to make a copy of this
-      return $headers;
+      return $this->headers;
     }
 
     /**

@@ -56,6 +56,8 @@ class Request extends Message implements RequestInterface
         throw new \InvalidArgumentException(
           $http_method . " is not a valid http method."
         );
+      } else if (!is_string($body)) {
+        throw new \InvalidArgumentException("Body must be a string.");
       }
 
       parent::__construct($protocol_version, $headers, new Stream($body));

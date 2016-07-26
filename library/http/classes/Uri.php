@@ -24,7 +24,6 @@ use \Psr\Http\Message\UriInterface as UriInterface;
  */
 class Uri implements UriInterface
 {
-    
     /**
      * Retrieve the scheme component of the URI.
      *
@@ -369,7 +368,7 @@ class Uri implements UriInterface
      */
     public function __toString()
     {
-        
+        return '';
     }
 
 }
