@@ -28,7 +28,40 @@ use \pillr\library\http\Message         as  Message;
  */
 class Request extends Message implements RequestInterface
 {
+    const KNOWN_METHODS = [
+      'GET',
+      'HEAD',
+      'POST',
+      'PUT',
+      'DELETE',
+      'TRACE',
+      'OPTIONS',
+      'CONNECT',
+      'PATCH'
+    ];
 
+    private $http_method;
+    private $uri;
+
+    function __construct(
+      $protocol_version = "1.1",
+      $http_method = "GET",
+      $uri = null,
+      $headers = [],
+      $body = ''
+    ) {
+      $uri = $uri ? $uri : new Uri('/');
+
+      if (!in_array($http_method, Request::KNOWN_METHODS)) {
+        throw new \InvalidArgumentException(
+          $http_method . " is not a valid http method."
+        );
+      }
+
+      parent::__construct($protocol_version, $headers, new Stream($body));
+      $this->http_method = $http_method;
+      $this->$uri = $uri;
+    }
 
     /**
      * Retrieves the message's request target.
@@ -48,7 +81,7 @@ class Request extends Message implements RequestInterface
      */
     public function getRequestTarget()
     {
-
+        return $this->uri->getPath();
     }
 
     /**
@@ -70,7 +103,13 @@ class Request extends Message implements RequestInterface
      */
     public function withRequestTarget($requestTarget)
     {
-
+      return self::__construct(
+        $this->getProtocolVersion(),
+        $this->getMethod(),
+        $this->getUri()->withPath($requestTarget),
+        $this->getHeaders(),
+        $this->getBody()
+      );
     }
 
     /**
@@ -80,7 +119,7 @@ class Request extends Message implements RequestInterface
      */
     public function getMethod()
     {
-
+      return $this->http_method;
     }
 
     /**
@@ -100,7 +139,13 @@ class Request extends Message implements RequestInterface
      */
     public function withMethod($method)
     {
-
+      return self::__construct(
+        $this->getProtocolVersion(),
+        $method,
+        $this->getRequestTarget(),
+        $this->getHeaders(),
+        $this->getBody()
+      );
     }
 
     /**
@@ -114,7 +159,8 @@ class Request extends Message implements RequestInterface
      */
     public function getUri()
     {
-
+      // TODO: Find out if should return a copy of
+      return $this->uri;
     }
 
     /**
@@ -149,7 +195,15 @@ class Request extends Message implements RequestInterface
      */
     public function withUri(UriInterface $uri, $preserveHost = false)
     {
-
+      return self::__construct(
+        $this->getProtocolVersion(),
+        $this->getMethod(),
+        $preserveHost
+          ? $uri->withHost($this->getUri()->getHost())
+          : $uri,
+        $this->getHeaders(),
+        $this->getBody()
+      );
     }
 
 

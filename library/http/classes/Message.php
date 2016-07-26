@@ -25,9 +25,9 @@ class Message implements MessageInterface
     private $body;
 
     function __construct(
-      $version = "1.1",
-      $headers = [],
-      $body = null
+      $version,
+      $headers,
+      $body
     ) {
       $body = $body ? $body : new Stream();
 
@@ -131,6 +131,7 @@ class Message implements MessageInterface
      */
     public function getHeaders()
     {
+      // TODO: find out if need to make a copy of this
       return $headers;
     }
 
@@ -282,6 +283,7 @@ class Message implements MessageInterface
      */
     public function getBody()
     {
+      // TODO: find out if I need to make a copy of this
       return $this->body;
     }
 
