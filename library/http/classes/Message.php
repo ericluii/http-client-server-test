@@ -18,6 +18,58 @@ use Psr\Http\Message\StreamInterface as StreamInterface;
  */
 class Message implements MessageInterface
 {
+    const KNOWN_VERSIONS = ["1.0", "1.1"];
+
+    private $protocol_version;
+    private $headers;
+    private $body;
+
+    function __construct(
+      $version = "1.1",
+      $headers = [],
+      $body = null
+    ) {
+      $body = $body ? $body : new Stream();
+
+      if (!in_array($version, Message::KNOWN_VERSIONS)) {
+        throw new RuntimeException($version . " is not a known http version.");
+      } else if (!is_object($body) || get_class($body) != Stream::class) {
+        throw new \InvalidArgumentException("Body provided is not a stream.");
+      } else {
+        if (!is_array($headers)) {
+          throw new \InvalidArgumentException(
+            "The headers provided were not arrays."
+          );
+        }
+
+        foreach ($headers as $key => $value) {
+          if (!is_string($key)) {
+            throw new \InvalidArgumentException("Header keys must be strings.");
+          }
+
+          if (!is_string($value) && !is_array($value)) {
+            throw new \InvalidArgumentException(
+              "Header values must be string or string arrays."
+            );
+          }
+
+          if (is_array($value)) {
+            foreach($value as $val) {
+              if (!is_string($val)) {
+                throw new \InvalidArgumentException(
+                  "Header values must be string or string arrays."
+                );
+              }
+            }
+          }
+        }
+      }
+
+      $this->protocol_version = $version;
+      $this->headers = $headers;
+      $this->body = $body;
+    }
+
     /**
      * Retrieves the HTTP protocol version as a string.
      *
@@ -27,7 +79,7 @@ class Message implements MessageInterface
      */
     public function getProtocolVersion()
     {
-
+      return $this->protocol_version;
     }
 
     /**
@@ -45,7 +97,11 @@ class Message implements MessageInterface
      */
     public function withProtocolVersion($version)
     {
-
+      return self::__construct(
+        $version,
+        $this->getHeaders(),
+        $this->getBody()
+      );
     }
 
     /**
@@ -75,7 +131,7 @@ class Message implements MessageInterface
      */
     public function getHeaders()
     {
-
+      return $headers;
     }
 
     /**
@@ -88,7 +144,7 @@ class Message implements MessageInterface
      */
     public function hasHeader($name)
     {
-
+      return array_key_exists(strtolower($name), $this->headers);
     }
 
     /**
@@ -107,7 +163,11 @@ class Message implements MessageInterface
      */
     public function getHeader($name)
     {
-
+      if ($this->hasHeader($name)) {
+        return $this->headers[strtolower($name)];
+      } else {
+        return [];
+      }
     }
 
     /**
@@ -131,7 +191,7 @@ class Message implements MessageInterface
      */
     public function getHeaderLine($name)
     {
-
+      return implode(",", $this->getHeader($name));
     }
 
     /**
@@ -151,7 +211,11 @@ class Message implements MessageInterface
      */
     public function withHeader($name, $value)
     {
-
+      return self::__construct(
+        $this->getProtocolVersion(),
+        [ strtolower($name) => $value ],
+        $this->getBody()
+      );
     }
 
     /**
@@ -173,7 +237,14 @@ class Message implements MessageInterface
      */
     public function withAddedHeader($name, $value)
     {
+      $temp = $this->getHeaders();
+      $temp[strtolower($name)] = $value;
 
+      return self::__construct(
+        $this->getProtocolVersion(),
+        $temp,
+        $this->getBody()
+      );
     }
 
     /**
@@ -190,7 +261,18 @@ class Message implements MessageInterface
      */
     public function withoutHeader($name)
     {
+      if ($this->hasHeader($name)) {
+        $temp = $this->getHeader($name);
+        unset($temp[strtolower($name)]);
 
+        return self::__construct(
+          $this->getProtocolVersion(),
+          $temp,
+          $this->getBody()
+        );
+      } else {
+        return $this;
+      }
     }
 
     /**
@@ -200,7 +282,7 @@ class Message implements MessageInterface
      */
     public function getBody()
     {
-
+      return $this->body;
     }
 
     /**
@@ -218,6 +300,10 @@ class Message implements MessageInterface
      */
     public function withBody(StreamInterface $body)
     {
-
+      return self::__construct(
+        $this->getProtocolVersion(),
+        $this->getHeaders(),
+        $body
+      );
     }
 }
